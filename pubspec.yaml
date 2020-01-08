@@ -1,0 +1,20 @@
+name: flutter_json_schema
+description: Generate a Flutter form based on JSON Schema
+version: 0.0.1
+author:
+homepage:
+
+environment:
+  sdk: ">=2.1.0 <3.0.0"
+
+dependencies:
+  path_provider: ^0.5.0+1
+  rxdart: ^0.20.0
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
