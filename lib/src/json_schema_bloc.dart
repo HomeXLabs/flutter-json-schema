@@ -39,24 +39,8 @@ class JsonSchemaBloc {
     });
   }
 
-  Future<Schema> readFromFile(String jsonFilePath) async {
-    String content = await rootBundle.loadString(jsonFilePath);
-    return await readFromJSONString(content);
-  }
-
-  Future<Schema> readFromJSONString(String content) async {
-    Map<String, dynamic> jsonMap = json.decode(content);
-    Schema schema = Schema.fromJson(jsonMap);
-    initDataBinding(schema.properties);
-    return schema;
-  }
-
-  void getTestSchema() async {
-    String jsonSchema =
-        await rootBundle.loadString('assets/test_json_schema.json');
+  void readFromJsonString(String jsonSchema, String uiSchema) async {
     Map<String, dynamic> jsonSchemaMap = json.decode(jsonSchema);
-
-    String uiSchema = await rootBundle.loadString('assets/test_ui_schema.json');
     Map<String, dynamic> uiSchemaMap = json.decode(uiSchema);
     _jsonSchema.add(Schema.fromJson(jsonSchemaMap)..setUiSchema(uiSchemaMap));
   }

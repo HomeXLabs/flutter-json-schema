@@ -21,7 +21,6 @@ class Schema {
       required: jsonSchema['required'],
     );
     newSchema.setProperties(jsonSchema['properties'], newSchema.required);
-    print(newSchema.properties);
     return newSchema;
   }
 
