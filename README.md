@@ -1,0 +1,1 @@
+flutter-json-schema
