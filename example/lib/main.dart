@@ -10,13 +10,13 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  JsonSchemaBloc jsonSchemaBloc;
+  JsonSchemaParser parser;
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    createJsonSchemaBloc();
+    createJsonSchemaParser();
   }
 
   @override
@@ -32,28 +32,19 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  StreamBuilder<Schema> _buildForm() {
-    return StreamBuilder<Schema>(
-      stream: jsonSchemaBloc.jsonSchema,
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          return JsonSchemaForm(
-            schema: snapshot.data,
-            jsonSchemaBloc: jsonSchemaBloc,
-          );
-        } else {
-          return Container();
-        }
-      },
+  Widget _buildForm() {
+    return JsonSchemaForm(
+      schema: parser.schema,
+      jsonSchemaParser: parser,
     );
   }
 
-  Future createJsonSchemaBloc() async {
-    jsonSchemaBloc = JsonSchemaBloc();
+  Future createJsonSchemaParser() async {
+    parser = JsonSchemaParser();
     var jsonSchema =
         await rootBundle.loadString('assets/test_json_schema.json');
     var uiSchema = await rootBundle.loadString('assets/test_ui_schema.json');
-    jsonSchemaBloc.readFromJsonString(jsonSchema, uiSchema);
+    parser.readFromJsonString(jsonSchema, uiSchema);
     setState(() {
       isLoading = false;
     });
