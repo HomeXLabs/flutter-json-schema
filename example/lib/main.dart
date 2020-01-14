@@ -49,12 +49,9 @@ class _MyAppState extends State<MyApp> {
             builder: (BuildContext context) {
               return AlertDialog(
                 title: Text("FormData"),
-                content: SizedBox(
-                  width: 150,
-                  child: TextFormField(
-                    initialValue: formData,
-                    maxLines: null,
-                  ),
+                content: TextFormField(
+                  initialValue: formData,
+                  maxLines: null,
                 ),
               );
             });
