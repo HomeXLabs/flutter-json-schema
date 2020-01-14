@@ -1,21 +1,27 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_json_schema/src/checkbox_form_field.dart';
-import 'package:flutter_json_schema/src/json_schema_parser.dart';
 import 'package:flutter_json_schema/src/models.dart';
 
 class JsonSchemaForm extends StatefulWidget {
-  final Schema schema;
-  final JsonSchemaParser jsonSchemaParser;
+  final String jsonSchema;
+  final String uiSchema;
+  final Function(String) onFormDataChanged;
 
-  JsonSchemaForm({@required this.schema, @required this.jsonSchemaParser});
+  JsonSchemaForm(
+      {@required this.jsonSchema,
+      @required this.uiSchema,
+      this.onFormDataChanged});
 
   @override
   State<StatefulWidget> createState() {
     return _JsonSchemaFormState(
-      schema: schema,
-      jsonSchemaParser: jsonSchemaParser,
+      jsonSchema: jsonSchema,
+      uiSchema: uiSchema,
+      onFormDataChanged: onFormDataChanged,
     );
   }
 }
@@ -23,16 +29,33 @@ class JsonSchemaForm extends StatefulWidget {
 typedef JsonSchemaFormSetter<T> = void Function(T newValue);
 
 class _JsonSchemaFormState extends State<JsonSchemaForm> {
-  final _formKey = GlobalKey<FormState>();
-  final Schema schema;
-  final JsonSchemaParser jsonSchemaParser;
+  final String jsonSchema;
+  final String uiSchema;
+  final Function(String) onFormDataChanged;
 
-  String formData;
+  final _formKey = GlobalKey<FormState>();
+
+  Schema schema;
+  Map<String, dynamic> data = Map<String, dynamic>();
+  String get formData => json.encode(data);
 
   _JsonSchemaFormState({
-    @required this.schema,
-    this.jsonSchemaParser,
-  });
+    @required this.jsonSchema,
+    @required this.uiSchema,
+    this.onFormDataChanged,
+  }) {
+    readFromJsonString(jsonSchema, uiSchema);
+  }
+
+  void readFromJsonString(String jsonSchema, String uiSchema) {
+    Map<String, dynamic> jsonSchemaMap = json.decode(jsonSchema);
+    Map<String, dynamic> uiSchemaMap = json.decode(uiSchema);
+
+    schema = Schema.fromJson(jsonSchemaMap)..setUiSchema(uiSchemaMap);
+    schema.properties.forEach((p) {
+      data[p.id] = p.defaultValue;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +112,7 @@ class _JsonSchemaFormState extends State<JsonSchemaForm> {
                         _formKey.currentState.save();
 
                         setState(() {
-                          formData = jsonSchemaParser.formData;
+                          onFormDataChanged(formData);
                         });
                       }
                     },
@@ -99,7 +122,6 @@ class _JsonSchemaFormState extends State<JsonSchemaForm> {
               ),
             ),
           ),
-          (formData?.isNotEmpty ?? false) ? Text(formData) : Container(),
         ],
       ),
     );
@@ -234,8 +256,8 @@ class _JsonSchemaFormState extends State<JsonSchemaForm> {
   }
 
   void updateData(Properties properties, dynamic value) {
-    if (jsonSchemaParser.data.containsKey(properties.id)) {
-      jsonSchemaParser.data[properties.id] = value;
+    if (data.containsKey(properties.id)) {
+      data[properties.id] = value;
     }
   }
 }

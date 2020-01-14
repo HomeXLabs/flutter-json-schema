@@ -5,24 +5,31 @@ import 'package:flutter_json_schema/flutter_json_schema.dart';
 void main() => runApp(MyApp());
 
 class MyApp extends StatefulWidget {
+  static final navKey = new GlobalKey<NavigatorState>();
+
+  const MyApp({Key navKey}) : super(key: navKey);
+
   @override
   _MyAppState createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
-  JsonSchemaParser parser;
   bool isLoading = true;
+  String jsonSchema;
+  String uiSchema;
 
   @override
   void initState() {
     super.initState();
-    createJsonSchemaParser();
+
+    setup();
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter JsonSchema Demo',
+      navigatorKey: MyApp.navKey,
       home: Scaffold(
         appBar: AppBar(
           title: Text('Flutter JsonSchema Demo'),
@@ -34,17 +41,31 @@ class _MyAppState extends State<MyApp> {
 
   Widget _buildForm() {
     return JsonSchemaForm(
-      schema: parser.schema,
-      jsonSchemaParser: parser,
+      jsonSchema: jsonSchema,
+      uiSchema: uiSchema,
+      onFormDataChanged: (String formData) async {
+        showDialog(
+            context: MyApp.navKey.currentState.overlay.context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text("FormData"),
+                content: SizedBox(
+                  width: 150,
+                  child: TextFormField(
+                    initialValue: formData,
+                    maxLines: null,
+                  ),
+                ),
+              );
+            });
+      },
     );
   }
 
-  Future createJsonSchemaParser() async {
-    parser = JsonSchemaParser();
-    var jsonSchema =
-        await rootBundle.loadString('assets/test_json_schema.json');
-    var uiSchema = await rootBundle.loadString('assets/test_ui_schema.json');
-    parser.readFromJsonString(jsonSchema, uiSchema);
+  Future setup() async {
+    jsonSchema = await rootBundle.loadString('assets/test_json_schema.json');
+    uiSchema = await rootBundle.loadString('assets/test_ui_schema.json');
+
     setState(() {
       isLoading = false;
     });
