@@ -9,12 +9,12 @@ import 'package:flutter_json_schema/src/models.dart';
 class JsonSchemaForm extends StatefulWidget {
   final String jsonSchema;
   final String uiSchema;
-  final Function(String) onFormDataChanged;
+  final void Function(String) onFormDataChanged;
 
   JsonSchemaForm(
       {@required this.jsonSchema,
       @required this.uiSchema,
-      this.onFormDataChanged});
+      @required this.onFormDataChanged});
 
   @override
   State<StatefulWidget> createState() {
@@ -31,8 +31,7 @@ typedef JsonSchemaFormSetter<T> = void Function(T newValue);
 class _JsonSchemaFormState extends State<JsonSchemaForm> {
   final String jsonSchema;
   final String uiSchema;
-  final Function(String) onFormDataChanged;
-
+  final void Function(String) onFormDataChanged;
   final _formKey = GlobalKey<FormState>();
 
   Schema schema;
@@ -42,12 +41,8 @@ class _JsonSchemaFormState extends State<JsonSchemaForm> {
   _JsonSchemaFormState({
     @required this.jsonSchema,
     @required this.uiSchema,
-    this.onFormDataChanged,
+    @required this.onFormDataChanged,
   }) {
-    readFromJsonString(jsonSchema, uiSchema);
-  }
-
-  void readFromJsonString(String jsonSchema, String uiSchema) {
     Map<String, dynamic> jsonSchemaMap = json.decode(jsonSchema);
     Map<String, dynamic> uiSchemaMap = json.decode(uiSchema);
 
@@ -111,9 +106,7 @@ class _JsonSchemaFormState extends State<JsonSchemaForm> {
                       if (_formKey.currentState.validate()) {
                         _formKey.currentState.save();
 
-                        setState(() {
-                          onFormDataChanged(formData);
-                        });
+                        onFormDataChanged(formData);
                       }
                     },
                     child: Text('Submit'),
