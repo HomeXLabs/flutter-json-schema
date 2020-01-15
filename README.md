@@ -1,14 +1,18 @@
 # flutter_json_schema
 
-Generate a Flutter form based on JSON Schema
+Generate a Flutter form based on JSON Schema and outputs FormData on submit.
+This is the react version of a [live playground](https://rjsf-team.github.io/react-jsonschema-form/).
 
-## Getting Started
 
-This project is a starting point for a Dart
-[package](https://flutter.dev/developing-packages/),
-a library module containing code that can be shared easily across
-multiple Flutter or Dart projects.
+## Usage
+Here is how the JsonSchemaForm can be constructed where jsonSchema and uiSchema are String:
+````dart
+   JsonSchemaForm(
+      jsonSchema: jsonSchema,
+      uiSchema: uiSchema,
+      onFormDataChanged: (String formData) async {
+            // TODO: Do whatever you want to do with formData
+      },
+    );
+````
 
-For help getting started with Flutter, view our 
-[online documentation](https://flutter.dev/docs), which offers tutorials, 
-samples, guidance on mobile development, and a full API reference.

@@ -5,24 +5,31 @@ import 'package:flutter_json_schema/flutter_json_schema.dart';
 void main() => runApp(MyApp());
 
 class MyApp extends StatefulWidget {
+  static final navKey = new GlobalKey<NavigatorState>();
+
+  const MyApp({Key navKey}) : super(key: navKey);
+
   @override
   _MyAppState createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
-  JsonSchemaBloc jsonSchemaBloc;
   bool isLoading = true;
+  String jsonSchema;
+  String uiSchema;
 
   @override
   void initState() {
     super.initState();
-    createJsonSchemaBloc();
+
+    setup();
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter JsonSchema Demo',
+      navigatorKey: MyApp.navKey,
       home: Scaffold(
         appBar: AppBar(
           title: Text('Flutter JsonSchema Demo'),
@@ -32,28 +39,30 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  StreamBuilder<Schema> _buildForm() {
-    return StreamBuilder<Schema>(
-      stream: jsonSchemaBloc.jsonSchema,
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          return JsonSchemaForm(
-            schema: snapshot.data,
-            jsonSchemaBloc: jsonSchemaBloc,
-          );
-        } else {
-          return Container();
-        }
+  Widget _buildForm() {
+    return JsonSchemaForm(
+      jsonSchema: jsonSchema,
+      uiSchema: uiSchema,
+      onFormDataChanged: (String formData) async {
+        showDialog(
+            context: MyApp.navKey.currentState.overlay.context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text("FormData"),
+                content: TextFormField(
+                  initialValue: formData,
+                  maxLines: null,
+                ),
+              );
+            });
       },
     );
   }
 
-  Future createJsonSchemaBloc() async {
-    jsonSchemaBloc = JsonSchemaBloc();
-    var jsonSchema =
-        await rootBundle.loadString('assets/test_json_schema.json');
-    var uiSchema = await rootBundle.loadString('assets/test_ui_schema.json');
-    jsonSchemaBloc.readFromJsonString(jsonSchema, uiSchema);
+  Future setup() async {
+    jsonSchema = await rootBundle.loadString('assets/test_json_schema.json');
+    uiSchema = await rootBundle.loadString('assets/test_ui_schema.json');
+
     setState(() {
       isLoading = false;
     });

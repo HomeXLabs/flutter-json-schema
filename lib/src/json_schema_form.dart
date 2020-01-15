@@ -1,30 +1,56 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_json_schema/src/checkbox_form_field.dart';
-import 'package:flutter_json_schema/src/json_schema_bloc.dart';
 import 'package:flutter_json_schema/src/models.dart';
 
 class JsonSchemaForm extends StatefulWidget {
-  final Schema schema;
-  final JsonSchemaBloc jsonSchemaBloc;
+  final String jsonSchema;
+  final String uiSchema;
+  final void Function(String) onFormDataChanged;
 
-  JsonSchemaForm({@required this.schema, this.jsonSchemaBloc});
+  JsonSchemaForm(
+      {@required this.jsonSchema,
+      @required this.uiSchema,
+      @required this.onFormDataChanged});
 
   @override
   State<StatefulWidget> createState() {
-    return _JsonSchemaFormState(schema: schema, jsonSchemaBloc: jsonSchemaBloc);
+    return _JsonSchemaFormState(
+      jsonSchema: jsonSchema,
+      uiSchema: uiSchema,
+      onFormDataChanged: onFormDataChanged,
+    );
   }
 }
 
 typedef JsonSchemaFormSetter<T> = void Function(T newValue);
 
 class _JsonSchemaFormState extends State<JsonSchemaForm> {
-  final Schema schema;
+  final String jsonSchema;
+  final String uiSchema;
+  final void Function(String) onFormDataChanged;
   final _formKey = GlobalKey<FormState>();
-  final JsonSchemaBloc jsonSchemaBloc;
 
-  _JsonSchemaFormState({@required this.schema, this.jsonSchemaBloc});
+  Schema schema;
+  Map<String, dynamic> data = Map<String, dynamic>();
+  String get formData => json.encode(data);
+
+  _JsonSchemaFormState({
+    @required this.jsonSchema,
+    @required this.uiSchema,
+    @required this.onFormDataChanged,
+  }) {
+    Map<String, dynamic> jsonSchemaMap = json.decode(jsonSchema);
+    Map<String, dynamic> uiSchemaMap = json.decode(uiSchema);
+
+    schema = Schema.fromJson(jsonSchemaMap)..setUiSchema(uiSchemaMap);
+    schema.properties.forEach((p) {
+      data[p.id] = p.defaultValue;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,9 +105,8 @@ class _JsonSchemaFormState extends State<JsonSchemaForm> {
                     onPressed: () {
                       if (_formKey.currentState.validate()) {
                         _formKey.currentState.save();
-                        Map<String, dynamic> data = Map<String, dynamic>();
-                        data['submit'] = true;
-                        jsonSchemaBloc.jsonDataAdd.add(data);
+
+                        onFormDataChanged(formData);
                       }
                     },
                     child: Text('Submit'),
@@ -90,15 +115,6 @@ class _JsonSchemaFormState extends State<JsonSchemaForm> {
               ),
             ),
           ),
-          StreamBuilder(
-              stream: jsonSchemaBloc.submitData,
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  return Text(snapshot.data);
-                } else {
-                  return Container();
-                }
-              }),
         ],
       ),
     );
@@ -117,43 +133,37 @@ class _JsonSchemaFormState extends State<JsonSchemaForm> {
     }
   }
 
-  Widget getNumberField(Properties property) {
-    return StreamBuilder(
-        stream: jsonSchemaBloc.formData[property.id],
-        builder: (context, snapshot) {
-          return Container(
-              child: TextFormField(
+  Widget getNumberField(Properties properties) {
+    return Container(
+        child: TextFormField(
             keyboardType: TextInputType.number,
             inputFormatters: <TextInputFormatter>[
               WhitelistingTextInputFormatter.digitsOnly
             ],
-            autofocus: (property.autoFocus ?? false),
+            autofocus: (properties.autoFocus ?? false),
             onSaved: (value) {
-              Map<String, dynamic> data = Map<String, dynamic>();
-              data[property.id] = value;
-              jsonSchemaBloc.jsonDataAdd.add(data);
+              updateData(properties, value);
             },
             autovalidate: true,
             validator: (String value) {
-              if (property.required && value.isEmpty) {
+              if (properties.required && value.isEmpty) {
                 return 'Required';
               }
-              if (property.minLength != null &&
+              if (properties.minLength != null &&
                   value.isNotEmpty &&
-                  value.length <= property.minLength) {
-                return 'should NOT be shorter than ${property.minLength} characters';
+                  value.length <= properties.minLength) {
+                return 'should NOT be shorter than ${properties.minLength} characters';
               }
               return null;
             },
             decoration: InputDecoration(
-              labelText:
-                  (property.required ? property.title + ' *' : property.title) +
-                      (property.description != null
-                          ? ' ' + property.description
-                          : ''),
-            ),
-          ));
-        });
+              labelText: (properties.required
+                      ? properties.title + ' *'
+                      : properties.title) +
+                  (properties.description != null
+                      ? ' ' + properties.description
+                      : ''),
+            )));
   }
 
   TextInputType getTextInputType(String widget, Options options) {
@@ -179,87 +189,68 @@ class _JsonSchemaFormState extends State<JsonSchemaForm> {
     return textInputType;
   }
 
-  Widget getTextField(Properties property) {
-    return StreamBuilder(
-      stream: jsonSchemaBloc.formData[property.id],
-      builder: (context, snapshot) {
-        return Container(
-          child: TextFormField(
-            autofocus: (property.autoFocus ?? false),
-            keyboardType: getTextInputType(property.widget, property.options),
-            maxLines: property.widget == "textarea" ? null : 1,
-            obscureText: property.widget == "password",
-            initialValue: property.defaultValue ?? '',
-            onSaved: (value) {
-              Map<String, dynamic> data = Map<String, dynamic>();
-              data[property.id] = value;
-              jsonSchemaBloc.jsonDataAdd.add(data);
-            },
-            autovalidate: true,
-            onChanged: (String value) {
-              if (property.emptyValue != null && value.isEmpty) {
-                return property.emptyValue;
-              }
-
-              return value;
-            },
-            validator: (String value) {
-              if (property.required && value.isEmpty) {
-                return 'Required';
-              }
-              if (property.minLength != null &&
-                  value.isNotEmpty &&
-                  value.length <= property.minLength) {
-                return 'should NOT be shorter than ${property.minLength} characters';
-              }
-              return null;
-            },
-            decoration: InputDecoration(
-              labelText:
-                  property.required ? property.title + ' *' : property.title,
-              helperText: property.help,
-            ),
-          ),
-        );
+  Widget getTextField(Properties properties) {
+    return Container(
+        child: TextFormField(
+      autofocus: (properties.autoFocus ?? false),
+      keyboardType: getTextInputType(properties.widget, properties.options),
+      maxLines: properties.widget == "textarea" ? null : 1,
+      obscureText: properties.widget == "password",
+      initialValue: properties.defaultValue ?? '',
+      onSaved: (value) {
+        updateData(properties, value);
       },
-    );
+      autovalidate: true,
+      onChanged: (String value) {
+        if (properties.emptyValue != null && value.isEmpty) {
+          return properties.emptyValue;
+        }
+
+        return value;
+      },
+      validator: (String value) {
+        if (properties.required && value.isEmpty) {
+          return 'Required';
+        }
+        if (properties.minLength != null &&
+            value.isNotEmpty &&
+            value.length <= properties.minLength) {
+          return 'should NOT be shorter than ${properties.minLength} characters';
+        }
+        return null;
+      },
+      decoration: InputDecoration(
+        labelText:
+            properties.required ? properties.title + ' *' : properties.title,
+        helperText: properties.help,
+      ),
+    ));
   }
 
   Widget getCheckBox(Properties properties) {
-    return StreamBuilder(
-      stream: jsonSchemaBloc.formData[properties.id],
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          return CheckboxFormField(
-            autoValidate: true,
-            initialValue: snapshot.data,
-            title: properties.title,
-            validator: (bool val) {
-              if (properties.required) {
-                if (!val) {
-                  return "Required";
-                }
-              }
-              return null;
-            },
-            onSaved: (bool val) {},
-            onChange: (val) {
-              Map<String, dynamic> data = Map<String, dynamic>();
-              data[properties.id] = val;
-              jsonSchemaBloc.jsonDataAdd.add(data);
-              return;
-            },
-          );
-        } else {
-          return Container();
+    return CheckboxFormField(
+      autoValidate: true,
+      initialValue: properties.defaultValue,
+      title: properties.title,
+      validator: (bool val) {
+        if (properties.required) {
+          if (!val) {
+            return "Required";
+          }
         }
+        return null;
+      },
+      onSaved: (bool val) {},
+      onChange: (value) {
+        updateData(properties, value);
+        return;
       },
     );
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-    jsonSchemaBloc.dispose();
+  void updateData(Properties properties, dynamic value) {
+    if (data.containsKey(properties.id)) {
+      data[properties.id] = value;
+    }
   }
 }
